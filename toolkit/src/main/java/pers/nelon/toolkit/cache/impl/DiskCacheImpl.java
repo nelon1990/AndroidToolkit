@@ -27,6 +27,16 @@ public class DiskCacheImpl extends BaseCacheImpl {
     }
 
     @Override
+    public <T> boolean put(String pKey, ICacheWriter<T> pCacheWriter) {
+        return super.put(pKey, pCacheWriter);
+    }
+
+    @Override
+    public <T> T get(String pKey, ICacheReader<T> pReader) {
+        return super.get(pKey, pReader);
+    }
+
+    @Override
     public String getString(String pKey) {
         String string = "";
         try {
@@ -39,7 +49,13 @@ public class DiskCacheImpl extends BaseCacheImpl {
 
     @Override
     public boolean hasCached(String pKey) {
-        return false;
+        boolean result = false;
+        try {
+            result = mDiskLruCache.get(EncodeHelper.toMD5(pKey)).getInputStream(0) != null;
+        } catch (IOException pE) {
+            pE.printStackTrace();
+        }
+        return result;
     }
 
     @Override
@@ -60,6 +76,7 @@ public class DiskCacheImpl extends BaseCacheImpl {
         }
     }
 
+
     @Override
     protected OutputStream getCacheOutputStream(String pKey) {
         OutputStream outputStream = null;
@@ -76,7 +93,9 @@ public class DiskCacheImpl extends BaseCacheImpl {
     protected InputStream getCacheInputStream(String pKey) {
         InputStream inputStream = null;
         try {
-            inputStream = mDiskLruCache.get(EncodeHelper.toMD5(pKey)).getInputStream(0);
+            String md5 = EncodeHelper.toMD5(pKey);
+            DiskLruCache.Snapshot snapshot = mDiskLruCache.get(md5);
+            inputStream = snapshot.getInputStream(0);
         } catch (IOException pE) {
             pE.printStackTrace();
         }

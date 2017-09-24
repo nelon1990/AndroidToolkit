@@ -51,7 +51,7 @@ public class Cache {
             pMaxDiskCacheSize = 100 * 1024 * 1024;
         }
         try {
-            @SuppressLint("WrongConstant") PackageInfo info = pContext.getPackageManager().getPackageInfo(pContext.getPackageName(), 1);
+            @SuppressLint("WrongConstant") PackageInfo info = pContext.getPackageManager().getPackageInfo(pContext.getPackageName(), PackageManager.GET_ACTIVITIES);
             sVersionCode = info.versionCode;
         } catch (PackageManager.NameNotFoundException pE) {
             pE.printStackTrace();
@@ -332,6 +332,7 @@ public class Cache {
                     operation.opt();
                 }
             } while (operation != null);
+
         }
 
         @Override

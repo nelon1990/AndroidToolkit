@@ -3,13 +3,11 @@ package pers.nelon.toolkit.cache.impl;
 import android.graphics.Bitmap;
 import android.util.LruCache;
 
-
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 
-import pers.nelon.toolkit.cache.ICacheImpl;
+import pers.nelon.toolkit.utils.EncodeHelper;
 
 /**
  * Created by nelon on 17-8-25.
@@ -92,18 +90,6 @@ public class MemCacheImpl extends BaseCacheImpl {
     }
 
     private String getEncodedKey(String pKey) {
-        if (mMd5 == null) {
-            try {
-                mMd5 = MessageDigest.getInstance("MD5");
-            } catch (NoSuchAlgorithmException pE) {
-                pE.printStackTrace();
-                mMd5 = null;
-            }
-        }
-        if (mMd5 != null) {
-            byte[] digest = mMd5.digest(pKey.getBytes());
-            pKey = new String(digest, 0, digest.length);
-        }
-        return pKey;
+        return EncodeHelper.toMD5(pKey);
     }
 }

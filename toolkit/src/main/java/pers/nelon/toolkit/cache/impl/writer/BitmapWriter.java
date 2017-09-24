@@ -6,7 +6,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 import pers.nelon.toolkit.cache.impl.ICacheWriter;
-import pers.nelon.toolkit.utils.IoHelper;
 
 /**
  * Created by nelon on 17-9-8.
@@ -35,8 +34,6 @@ public class BitmapWriter implements ICacheWriter<Bitmap> {
         } catch (IOException pE) {
             pE.printStackTrace();
             result = false;
-        } finally {
-            IoHelper.closeStream(pOutputStream);
         }
         return result;
     }

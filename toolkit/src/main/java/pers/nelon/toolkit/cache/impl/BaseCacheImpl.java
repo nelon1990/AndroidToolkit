@@ -7,7 +7,10 @@ import java.io.OutputStream;
 
 import pers.nelon.toolkit.cache.ICacheImpl;
 import pers.nelon.toolkit.cache.impl.reader.BitmapReader;
+import pers.nelon.toolkit.cache.impl.reader.StringReader;
 import pers.nelon.toolkit.cache.impl.writer.BitmapWriter;
+import pers.nelon.toolkit.cache.impl.writer.StringWriter;
+import pers.nelon.toolkit.utils.IoHelper;
 
 /**
  * Created by nelon on 17-9-8.
@@ -18,29 +21,40 @@ public abstract class BaseCacheImpl implements ICacheImpl {
 
     }
 
-    @Override
-    public <T> boolean put(String pKey, ICacheWriter<T> pCacheWriter) {
-        return pCacheWriter.write(getCacheOutputStream(pKey));
-    }
-
     protected abstract OutputStream getCacheOutputStream(String pKey);
-
-    @Override
-    public <T> T get(String pKey, ICacheReader<T> pReader) {
-        return pReader.read(getCacheInputStream(pKey));
-    }
 
     protected abstract InputStream getCacheInputStream(String pKey);
 
+    @Override
+    public <T> boolean put(String pKey, ICacheWriter<T> pCacheWriter) {
+        OutputStream outputStream = getCacheOutputStream(pKey);
+        boolean write = pCacheWriter.write(outputStream);
+        IoHelper.closeStream(outputStream);
+        return write;
+    }
 
     @Override
-    public boolean putBitmap(String pKey, Bitmap pBitmap) {
-        return put(pKey, new BitmapWriter(pBitmap, Bitmap.CompressFormat.PNG, 100));
+    public <T> T get(String pKey, ICacheReader<T> pReader) {
+        InputStream inputStream = getCacheInputStream(pKey);
+        T read = pReader.read(inputStream);
+        IoHelper.closeStream(inputStream);
+        return read;
+    }
+
+
+    @Override
+    public String getString(String pKey) {
+        return get(pKey, new StringReader());
     }
 
     @Override
     public boolean putString(String pKey, String pString) {
-        return false;
+        return put(pKey, new StringWriter(pString));
+    }
+
+    @Override
+    public boolean putBitmap(String pKey, Bitmap pBitmap) {
+        return put(pKey, new BitmapWriter(pBitmap, Bitmap.CompressFormat.PNG, 100));
     }
 
     @Override
