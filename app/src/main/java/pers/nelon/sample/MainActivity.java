@@ -1,4 +1,4 @@
-package pers.nelon.toolkit;
+package pers.nelon.sample;
 
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
