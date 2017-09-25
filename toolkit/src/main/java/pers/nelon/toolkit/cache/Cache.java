@@ -1,6 +1,8 @@
 package pers.nelon.toolkit.cache;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
+import android.app.FragmentManager;
 import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
@@ -14,6 +16,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import pers.nelon.toolkit.cache.impl.DiskCacheImpl;
+import pers.nelon.toolkit.cache.impl.ICacheReader;
+import pers.nelon.toolkit.cache.impl.ICacheWriter;
 import pers.nelon.toolkit.cache.impl.MemCacheImpl;
 
 /**
@@ -30,6 +34,15 @@ public class Cache {
     private static File sDiskCacheTarget = null;
     private static int sMaxDiskCacheSize = -1;
     private static int sVersionCode;
+
+    public static void init(Activity pActivity) {
+        FragmentManager fragmentManager = pActivity.getFragmentManager();
+        fragmentManager.beginTransaction()
+                .add(new LifeCircleFragment(), "LifeCircleMonitor")
+                .commit();
+
+        init((Context) pActivity);
+    }
 
     public static void init(Context pContext) {
         init(pContext, -1);
@@ -61,7 +74,7 @@ public class Cache {
         sMaxDiskCacheSize = pMaxDiskCacheSize;
     }
 
-    public static ICacheWrapper withMemDefault() {
+    public static ICacheWrapper withMemCache() {
         checkInit();
         if (sMemCacheWrapper == null) {
             synchronized (Cache.class) {
@@ -73,7 +86,7 @@ public class Cache {
         return sMemCacheWrapper;
     }
 
-    public static ICacheWrapper withDiskDefault() {
+    public static ICacheWrapper withDiskCache() {
         checkInit();
         if (sDiskCacheWrapper == null) {
             synchronized (Cache.class) {
@@ -85,12 +98,12 @@ public class Cache {
         return sDiskCacheWrapper;
     }
 
-    public static ICacheWrapper withDefault() {
+    public static ICacheWrapper withL2Cache() {
         checkInit();
         if (sCacheWrapper == null) {
             synchronized (Cache.class) {
                 if (sCacheWrapper == null) {
-                    sCacheWrapper = new EJCacheWrapper(withMemDefault(), withDiskDefault());
+                    sCacheWrapper = new L2CacheWrapper(withMemCache(), withDiskCache());
                 }
             }
         }
@@ -99,6 +112,33 @@ public class Cache {
 
     public static ICacheWrapper with(ICacheImpl pCache) {
         return new CacheWrapper(pCache);
+    }
+
+    public static void release() {
+        if (sMemCacheWrapper != null) {
+            sMemCacheWrapper.close();
+            sMemCacheWrapper = null;
+        }
+        if (sDiskCacheWrapper != null) {
+            sDiskCacheWrapper.close();
+            sDiskCacheWrapper = null;
+        }
+        if (sCacheWrapper != null) {
+            sCacheWrapper.close();
+            sCacheWrapper = null;
+        }
+    }
+
+    public static void flush() {
+        if (sMemCacheWrapper != null) {
+            sMemCacheWrapper.flush();
+        }
+        if (sDiskCacheWrapper != null) {
+            sDiskCacheWrapper.flush();
+        }
+        if (sCacheWrapper != null) {
+            sCacheWrapper.flush();
+        }
     }
 
     private static void checkInit() {
@@ -124,16 +164,21 @@ public class Cache {
 
         double get(String pKey, double pDefault);
 
+        <T> T get(String pKey, ICacheReader<T> pReader, T pDefault);
+
+        void close();
+
+        void flush();
     }
 
     private static class CacheWrapper implements ICacheWrapper {
 
-        private final ICacheImpl mCache;
+        private final ICacheImpl mImpl;
         private final IEditor mEditor;
 
-        CacheWrapper(ICacheImpl pCache) {
-            mCache = pCache;
-            mEditor = new Editor(pCache);
+        CacheWrapper(ICacheImpl pImpl) {
+            mImpl = pImpl;
+            mEditor = new Editor(pImpl);
         }
 
         @Override
@@ -143,18 +188,18 @@ public class Cache {
 
         @Override
         public boolean has(String pKey) {
-            return mCache.hasCached(pKey);
+            return mImpl.has(pKey);
         }
 
         @Override
         public Bitmap get(String pKey, Bitmap pDefault) {
-            Bitmap bitmap = mCache.getBitmap(pKey);
+            Bitmap bitmap = mImpl.getBitmap(pKey);
             return bitmap == null ? pDefault : bitmap;
         }
 
         @Override
         public String get(String pKey, String pDefault) {
-            String string = mCache.getString(pKey);
+            String string = mImpl.getString(pKey);
             if (TextUtils.isEmpty(string)) {
                 string = pDefault;
             }
@@ -205,15 +250,36 @@ public class Cache {
             return result;
         }
 
+        @Override
+        public <T> T get(String pKey, ICacheReader<T> pReader, T pDefault) {
+            T result = pDefault;
+            try {
+                result = mImpl.get(pKey, pReader);
+            } catch (NumberFormatException pE) {
+                pE.printStackTrace();
+            }
+            return result;
+        }
+
+        @Override
+        public void close() {
+            mImpl.close();
+        }
+
+        @Override
+        public void flush() {
+            mImpl.flush();
+        }
+
 
     }
 
-    private static class EJCacheWrapper implements ICacheWrapper {
+    private static class L2CacheWrapper implements ICacheWrapper {
         private final IEditor mEjEditor;
         private ICacheWrapper mDiskCacheWrapper;
         private ICacheWrapper mMemCacheWrapper;
 
-        private EJCacheWrapper(ICacheWrapper pDiskCacheWrapper, ICacheWrapper pMemCacheWrapper) {
+        private L2CacheWrapper(ICacheWrapper pDiskCacheWrapper, ICacheWrapper pMemCacheWrapper) {
             mDiskCacheWrapper = pDiskCacheWrapper;
             mMemCacheWrapper = pMemCacheWrapper;
             mEjEditor = new EJEditor(mMemCacheWrapper.editor(), mDiskCacheWrapper.editor());
@@ -231,108 +297,171 @@ public class Cache {
 
         @Override
         public Bitmap get(String pKey, Bitmap pDefault) {
-            return mMemCacheWrapper.get(pKey, mDiskCacheWrapper.get(pKey, pDefault));
+            Bitmap result = mMemCacheWrapper.get(pKey, pDefault);
+            if (result == null || result.equals(pDefault)) {
+                result = mDiskCacheWrapper.get(pKey, pDefault);
+            }
+            return result;
         }
 
         @Override
         public int get(String pKey, int pDefault) {
-            return mMemCacheWrapper.get(pKey, mDiskCacheWrapper.get(pKey, pDefault));
+            int result = mMemCacheWrapper.get(pKey, pDefault);
+            if (result == pDefault) {
+                result = mDiskCacheWrapper.get(pKey, pDefault);
+            }
+            return result;
         }
 
         @Override
         public String get(String pKey, String pDefault) {
-            return mMemCacheWrapper.get(pKey, mDiskCacheWrapper.get(pKey, pDefault));
+            String result = mMemCacheWrapper.get(pKey, pDefault);
+            if (result == null || result.equals(pDefault)) {
+                result = mDiskCacheWrapper.get(pKey, pDefault);
+            }
+            return result;
         }
 
         @Override
         public float get(String pKey, float pDefault) {
-            return mMemCacheWrapper.get(pKey, mDiskCacheWrapper.get(pKey, pDefault));
+            float result = mMemCacheWrapper.get(pKey, pDefault);
+            if (result == pDefault) {
+                result = mDiskCacheWrapper.get(pKey, pDefault);
+            }
+            return result;
         }
 
         @Override
         public long get(String pKey, long pDefault) {
-            return mMemCacheWrapper.get(pKey, mDiskCacheWrapper.get(pKey, pDefault));
+            long result = mMemCacheWrapper.get(pKey, pDefault);
+            if (result == pDefault) {
+                result = mDiskCacheWrapper.get(pKey, pDefault);
+            }
+            return result;
         }
 
         @Override
         public double get(String pKey, double pDefault) {
-            return mMemCacheWrapper.get(pKey, mDiskCacheWrapper.get(pKey, pDefault));
+            double result = mMemCacheWrapper.get(pKey, pDefault);
+            if (result == pDefault) {
+                result = mDiskCacheWrapper.get(pKey, pDefault);
+            }
+            return result;
+        }
+
+        @Override
+        public <T> T get(String pKey, ICacheReader<T> pReader, T pDefault) {
+            T result = mMemCacheWrapper.get(pKey, pReader, pDefault);
+            if (result == pDefault) {
+                result = mDiskCacheWrapper.get(pKey, pReader, pDefault);
+            }
+            return result;
+        }
+
+
+        @Override
+        public void close() {
+            mDiskCacheWrapper.close();
+            mMemCacheWrapper.close();
+        }
+
+        @Override
+        public void flush() {
+            mMemCacheWrapper.flush();
+            mDiskCacheWrapper.flush();
         }
     }
 
     private static class Editor implements IEditor, Runnable {
-        private static ExecutorService sExecutorService = Executors.newSingleThreadExecutor();
-        private final ICacheImpl mCache;
-        private final ThreadLocal<Queue<IEditorOperation>> mThreadLocal = new ThreadLocal<Queue<IEditorOperation>>() {
+        private static ExecutorService sExecutorService;
+        private final IEditable mEditable;
+        private final ThreadLocal<Queue<IEditorOpt>> mThreadLocal = new ThreadLocal<Queue<IEditorOpt>>() {
             @Override
-            protected Queue<IEditorOperation> initialValue() {
+            protected Queue<IEditorOpt> initialValue() {
                 return new LinkedList<>();
             }
         };
 
-        private Editor(ICacheImpl pCache) {
-            mCache = pCache;
+        private Editor(IEditable pEditable) {
+            mEditable = pEditable;
+        }
+
+        private ExecutorService getExecutorService() {
+            if (sExecutorService == null || !sExecutorService.isShutdown()) {
+                synchronized (Editor.class) {
+                    if (sExecutorService == null || !sExecutorService.isShutdown()) {
+                        sExecutorService = Executors.newSingleThreadExecutor();
+                    }
+                }
+            }
+
+            return sExecutorService;
         }
 
         @Override
         public Editor put(String pKey, Bitmap pBitmap) {
-            mThreadLocal.get().add(new EditorPut(mCache, pKey, pBitmap));
+            mThreadLocal.get().add(new EditorPut(mEditable, pKey, pBitmap));
             return this;
         }
 
         @Override
         public Editor put(String pKey, String pString) {
-            mThreadLocal.get().add(new EditorPut(mCache, pKey, pString));
+            mThreadLocal.get().add(new EditorPut(mEditable, pKey, pString));
             return this;
         }
 
         @Override
         public Editor put(String pKey, int pInt) {
-            put(pKey, String.valueOf(pInt));
-            return this;
+            return put(pKey, String.valueOf(pInt));
         }
 
         @Override
         public Editor put(String pKey, float pFloat) {
-            put(pKey, String.valueOf(pFloat));
-            return this;
+            return put(pKey, String.valueOf(pFloat));
         }
 
         @Override
         public Editor put(String pKey, long pLong) {
-            put(pKey, String.valueOf(pLong));
-            return this;
+            return put(pKey, String.valueOf(pLong));
         }
 
         @Override
         public Editor put(String pKey, double pDouble) {
-            put(pKey, String.valueOf(pDouble));
+            return put(pKey, String.valueOf(pDouble));
+        }
+
+        @Override
+        public IEditor put(String pKey, ICacheWriter pWriter) {
+            mThreadLocal.get().add(new EditorPut(mEditable, pKey, pWriter));
             return this;
         }
 
         @Override
         public IEditor delete(String pKey) {
-            mThreadLocal.get().add(new EditorDelete(mCache, pKey));
+            mThreadLocal.get().add(new EditorDelete(mEditable, pKey));
             return this;
         }
 
         @Override
         public IEditor clear() {
-            mThreadLocal.get().add(new EditorClear(mCache));
+            mThreadLocal.get().add(new EditorClear(mEditable));
             return this;
         }
 
         @Override
         public void run() {
-            IEditorOperation operation;
-            do {
-                Queue<IEditorOperation> iEditorOperations = mThreadLocal.get();
-                operation = iEditorOperations.poll();
-                if (operation != null) {
-                    operation.opt();
-                }
-            } while (operation != null);
-
+            try {
+                IEditorOpt operation;
+                do {
+                    Queue<IEditorOpt> iEditorOpts = mThreadLocal.get();
+                    operation = iEditorOpts.poll();
+                    if (operation != null) {
+                        operation.opt();
+                    }
+                } while (operation != null);
+            } finally {
+                mEditable.afterCommit();
+            }
         }
 
         @Override
@@ -341,18 +470,18 @@ public class Cache {
         }
 
         @Override
-        public void commitAsync() {
-            sExecutorService.submit(this);
+        public ICommitFuture commitAsync() {
+            return new CommitFuture(getExecutorService().submit(this));
         }
 
 
-        private class EditorPut implements IEditorOperation {
+        private class EditorPut implements IEditorOpt {
             private final String mKey;
             private final Object mValue;
-            private final ICacheImpl mCache;
+            private final IEditable mEditable;
 
-            private EditorPut(ICacheImpl pCache, String pKey, Object pValue) {
-                mCache = pCache;
+            private EditorPut(IEditable pEditable, String pKey, Object pValue) {
+                mEditable = pEditable;
                 mKey = pKey;
                 mValue = pValue;
             }
@@ -360,39 +489,44 @@ public class Cache {
             @Override
             public void opt() {
                 if (mValue instanceof String) {
-                    mCache.putString(mKey, String.valueOf(mValue));
+                    mEditable.putString(mKey, String.valueOf(mValue));
+                    mEditable.afterEveryPut(mKey);
                 } else if (mValue instanceof Bitmap) {
-                    mCache.putBitmap(mKey, (Bitmap) mValue);
+                    mEditable.putBitmap(mKey, (Bitmap) mValue);
+                    mEditable.afterEveryPut(mKey);
+                } else if (mValue instanceof ICacheWriter) {
+                    mEditable.put(mKey, (ICacheWriter<Object>) mValue);
+                    mEditable.afterEveryPut(mKey);
                 }
             }
         }
 
-        private class EditorDelete implements IEditorOperation {
+        private class EditorDelete implements IEditorOpt {
             private final String mKey;
-            private final ICacheImpl mCache;
+            private final IEditable mEditable;
 
-            private EditorDelete(ICacheImpl pCache, String pKey) {
-                mCache = pCache;
+            private EditorDelete(IEditable pEditable, String pKey) {
+                mEditable = pEditable;
                 mKey = pKey;
             }
 
             @Override
             public void opt() {
-                mCache.delete(mKey);
+                mEditable.delete(mKey);
             }
         }
 
 
-        private class EditorClear implements IEditorOperation {
-            private final ICacheImpl mCache;
+        private class EditorClear implements IEditorOpt {
+            private final IEditable mEditable;
 
-            private EditorClear(ICacheImpl pCache) {
-                mCache = pCache;
+            private EditorClear(IEditable pEditable) {
+                mEditable = pEditable;
             }
 
             @Override
             public void opt() {
-                mCache.clear();
+                mEditable.clear();
             }
         }
     }
@@ -449,6 +583,13 @@ public class Cache {
         }
 
         @Override
+        public IEditor put(String pKey, ICacheWriter pWriter) {
+            mDiskCacheEditor.put(pKey, pWriter);
+            mMemCacheEditor.put(pKey, pWriter);
+            return this;
+        }
+
+        @Override
         public IEditor delete(String pKey) {
             mMemCacheEditor.delete(pKey);
             mDiskCacheEditor.delete(pKey);
@@ -469,9 +610,8 @@ public class Cache {
         }
 
         @Override
-        public void commitAsync() {
-            mMemCacheEditor.commitAsync();
-            mDiskCacheEditor.commitAsync();
+        public ICommitFuture commitAsync() {
+            return new FutureWrapper(mMemCacheEditor.commitAsync(), mDiskCacheEditor.commitAsync());
         }
 
     }

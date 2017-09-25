@@ -2,6 +2,8 @@ package pers.nelon.toolkit.cache;
 
 import android.graphics.Bitmap;
 
+import pers.nelon.toolkit.cache.impl.ICacheWriter;
+
 /**
  * Created by nelon on 17-8-28.
  */
@@ -20,15 +22,17 @@ public interface IEditor {
 
     IEditor put(String pKey, double pDouble);
 
+    IEditor put(String pKey, ICacheWriter pWriter);
+
     IEditor delete(String pKey);
 
     IEditor clear();
 
     void commit();
 
-    void commitAsync();
+    ICommitFuture commitAsync();
 
-    interface IEditorOperation {
+    interface IEditorOpt {
         void opt();
     }
 }

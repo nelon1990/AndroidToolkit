@@ -1,11 +1,11 @@
 package pers.nelon.toolkit.cache.impl;
 
-import android.graphics.Bitmap;
 import android.util.LruCache;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.security.MessageDigest;
 
 import pers.nelon.toolkit.utils.EncodeHelper;
 
@@ -14,74 +14,49 @@ import pers.nelon.toolkit.utils.EncodeHelper;
  */
 
 public class MemCacheImpl extends BaseCacheImpl {
-    private final LruCache<String, Object> mLruCache;
-    private MessageDigest mMd5;
+    private final LruCache<String, ByteArrayOutputStream> mLruCache;
 
     /**
      * @param pMaxSize 单位为kByte
      */
     public MemCacheImpl(int pMaxSize) {
-        mLruCache = new LruCache<String, Object>(pMaxSize) {
+        mLruCache = new LruCache<String, ByteArrayOutputStream>(pMaxSize) {
             @Override
-            protected int sizeOf(String key, Object value) {
-                if (value instanceof Bitmap) {
-                    return ((Bitmap) value).getByteCount() / 1024;
-                } else if (value instanceof String) {
-                    return ((String) value).length() / 1024;
-                }
-                return super.sizeOf(key, value);
+            protected int sizeOf(String key, ByteArrayOutputStream value) {
+                return value.size();
             }
         };
     }
 
     @Override
     protected OutputStream getCacheOutputStream(String pKey) {
-        return null;
+        ByteArrayOutputStream byteArrayOutputStream = mLruCache.get(pKey);
+        if (byteArrayOutputStream == null) {
+            byteArrayOutputStream = new ByteArrayOutputStream();
+            mLruCache.put(pKey, byteArrayOutputStream);
+        }
+        byteArrayOutputStream.reset();
+        return byteArrayOutputStream;
     }
 
     @Override
     protected InputStream getCacheInputStream(String pKey) {
-        return null;
-    }
-
-    @Override
-    public boolean putBitmap(String pKey, Bitmap pBitmap) {
-        mLruCache.put(getEncodedKey(pKey), pBitmap);
-        return true;
-    }
-
-    @Override
-    public boolean putString(String pKey, String pString) {
-        mLruCache.put(getEncodedKey(pKey), pString);
-        return true;
-    }
-
-    @Override
-    public Bitmap getBitmap(String pKey) {
-        Object o = mLruCache.get(getEncodedKey(pKey));
-        if (o != null && o instanceof Bitmap) {
-            return (Bitmap) o;
+        ByteArrayOutputStream byteArrayOutputStream = mLruCache.get(pKey);
+        if (byteArrayOutputStream == null) {
+            return null;
         }
-        return null;
+        return new ByteArrayInputStream(byteArrayOutputStream.toByteArray());
     }
 
-    @Override
-    public String getString(String pKey) {
-        Object o = mLruCache.get(getEncodedKey(pKey));
-        if (o != null && o instanceof String) {
-            return (String) o;
-        }
-        return null;
-    }
 
     @Override
-    public boolean hasCached(String pKey) {
-        return mLruCache.get(getEncodedKey(pKey)) != null;
+    public boolean has(String pKey) {
+        return mLruCache.get(pKey) != null;
     }
 
     @Override
     public void delete(String pKey) {
-        mLruCache.remove(getEncodedKey(pKey));
+        mLruCache.remove(pKey);
     }
 
     @Override
@@ -89,7 +64,8 @@ public class MemCacheImpl extends BaseCacheImpl {
         mLruCache.evictAll();
     }
 
-    private String getEncodedKey(String pKey) {
-        return EncodeHelper.toMD5(pKey);
+    @Override
+    public void close() {
+        clear();
     }
 }

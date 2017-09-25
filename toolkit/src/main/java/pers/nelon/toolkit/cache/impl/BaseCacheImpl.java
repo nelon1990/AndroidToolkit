@@ -25,9 +25,33 @@ public abstract class BaseCacheImpl implements ICacheImpl {
 
     protected abstract InputStream getCacheInputStream(String pKey);
 
+
+    @Override
+    public void afterCommit() {
+
+    }
+
+    @Override
+    public void afterEveryPut(String pKey) {
+
+    }
+
+    @Override
+    public void close() {
+
+    }
+
+    @Override
+    public void flush() {
+
+    }
+
     @Override
     public <T> boolean put(String pKey, ICacheWriter<T> pCacheWriter) {
         OutputStream outputStream = getCacheOutputStream(pKey);
+        if (outputStream == null) {
+            return false;
+        }
         boolean write = pCacheWriter.write(outputStream);
         IoHelper.closeStream(outputStream);
         return write;
@@ -36,11 +60,13 @@ public abstract class BaseCacheImpl implements ICacheImpl {
     @Override
     public <T> T get(String pKey, ICacheReader<T> pReader) {
         InputStream inputStream = getCacheInputStream(pKey);
+        if (inputStream == null) {
+            return null;
+        }
         T read = pReader.read(inputStream);
         IoHelper.closeStream(inputStream);
         return read;
     }
-
 
     @Override
     public String getString(String pKey) {

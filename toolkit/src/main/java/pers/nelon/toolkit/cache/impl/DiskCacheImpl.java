@@ -6,6 +6,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.concurrent.ConcurrentHashMap;
 
 import pers.nelon.toolkit.utils.EncodeHelper;
 
@@ -16,8 +17,10 @@ import pers.nelon.toolkit.utils.EncodeHelper;
 public class DiskCacheImpl extends BaseCacheImpl {
 
     private DiskLruCache mDiskLruCache;
+    private ConcurrentHashMap<String, DiskLruCache.Editor> mEditorMap;
 
     public DiskCacheImpl(File directory, int appVersion, int valueCount, long maxSize) {
+        mEditorMap = new ConcurrentHashMap<>();
         try {
             mDiskLruCache = DiskLruCache.open(directory, appVersion, valueCount, maxSize);
         } catch (IOException pE) {
@@ -27,32 +30,11 @@ public class DiskCacheImpl extends BaseCacheImpl {
     }
 
     @Override
-    public <T> boolean put(String pKey, ICacheWriter<T> pCacheWriter) {
-        return super.put(pKey, pCacheWriter);
-    }
-
-    @Override
-    public <T> T get(String pKey, ICacheReader<T> pReader) {
-        return super.get(pKey, pReader);
-    }
-
-    @Override
-    public String getString(String pKey) {
-        String string = "";
-        try {
-            string = mDiskLruCache.get(EncodeHelper.toMD5(pKey)).getString(0);
-        } catch (IOException pE) {
-            pE.printStackTrace();
-        }
-        return string;
-    }
-
-    @Override
-    public boolean hasCached(String pKey) {
+    public boolean has(String pKey) {
         boolean result = false;
         try {
             result = mDiskLruCache.get(EncodeHelper.toMD5(pKey)).getInputStream(0) != null;
-        } catch (IOException pE) {
+        } catch (Exception pE) {
             pE.printStackTrace();
         }
         return result;
@@ -76,14 +58,37 @@ public class DiskCacheImpl extends BaseCacheImpl {
         }
     }
 
+    @Override
+    public void close() {
+        try {
+            mDiskLruCache.close();
+            mEditorMap.clear();
+        } catch (IOException pE) {
+            pE.printStackTrace();
+        }
+    }
+
+
+    @Override
+    public void flush() {
+        try {
+            if (!mDiskLruCache.isClosed()) {
+                mDiskLruCache.flush();
+            }
+        } catch (IOException pE) {
+            pE.printStackTrace();
+        }
+    }
 
     @Override
     protected OutputStream getCacheOutputStream(String pKey) {
         OutputStream outputStream = null;
         try {
-            outputStream = mDiskLruCache.edit(EncodeHelper.toMD5(pKey))
+            DiskLruCache.Editor editor = mDiskLruCache.edit(EncodeHelper.toMD5(pKey));
+            mEditorMap.put(pKey, editor);
+            outputStream = editor
                     .newOutputStream(0);
-        } catch (IOException pE) {
+        } catch (Exception pE) {
             pE.printStackTrace();
         }
         return outputStream;
@@ -93,13 +98,23 @@ public class DiskCacheImpl extends BaseCacheImpl {
     protected InputStream getCacheInputStream(String pKey) {
         InputStream inputStream = null;
         try {
-            String md5 = EncodeHelper.toMD5(pKey);
-            DiskLruCache.Snapshot snapshot = mDiskLruCache.get(md5);
+            DiskLruCache.Snapshot snapshot = mDiskLruCache.get(EncodeHelper.toMD5(pKey));
             inputStream = snapshot.getInputStream(0);
-        } catch (IOException pE) {
+        } catch (Exception pE) {
             pE.printStackTrace();
         }
         return inputStream;
     }
 
+    @Override
+    public void afterEveryPut(String pKey) {
+        DiskLruCache.Editor editor = mEditorMap.remove(pKey);
+        if (editor != null) {
+            try {
+                editor.commit();
+            } catch (Exception pE) {
+                pE.printStackTrace();
+            }
+        }
+    }
 }
