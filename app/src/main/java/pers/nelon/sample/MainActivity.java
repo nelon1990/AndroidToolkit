@@ -1,5 +1,6 @@
 package pers.nelon.sample;
 
+import android.app.Activity;
 import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
 import android.os.Bundle;
@@ -7,6 +8,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import pers.nelon.toolkit.TaggedPool;
 import pers.nelon.toolkit.cache.Cache;
 import pers.nelon.toolkit.cache.impl.reader.BitmapReader;
 import pers.nelon.toolkit.cache.impl.reader.StringReader;
@@ -46,7 +48,23 @@ public class MainActivity extends AppCompatActivity {
                     .get("key", new StringReader(),"NULL");
             mTextView.setText(key);
         }
+
+        TaggedPool<Activity> pool = TaggedPool.newInstance(ActivityHolder.class);
+
     }
+
+    class ActivityHolder extends TaggedPool.Holder<Activity> {
+        @Override
+        public void release(Activity obj) {
+            obj.finish();
+        }
+
+        @Override
+        public boolean isAvailable(Activity obj) {
+            return obj.isFinishing();
+        }
+    }
+
 
 
 }
