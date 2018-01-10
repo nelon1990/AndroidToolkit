@@ -283,9 +283,7 @@ public class PlayerWrapper<P extends IPlayerItem> implements IPlayer.OnPrepareLi
     }
 
     @Override
-    public void
-
-    onBufferingUpdate(IPlayer pPlayer, int percent) {
+    public void onBufferingUpdate(IPlayer pPlayer, int percent) {
         notifyOnBufferingUpdateListener(this, percent);
     }
 

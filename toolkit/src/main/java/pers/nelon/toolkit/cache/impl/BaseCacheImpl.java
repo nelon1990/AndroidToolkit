@@ -32,7 +32,7 @@ public abstract class BaseCacheImpl implements ICacheImpl {
     }
 
     @Override
-    public void afterEveryPut(String pKey) {
+    public void afterEachPut(String pKey) {
 
     }
 

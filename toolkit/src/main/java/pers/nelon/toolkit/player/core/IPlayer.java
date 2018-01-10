@@ -25,6 +25,8 @@ public interface IPlayer {
 
     void setOnInfoListener(OnInfoListener pListener);
 
+    void setOnErrorListener(OnErrorListener pListener);
+
     void setOnBufferingUpdateListener(OnBufferingUpdateListener pListener);
 
     void setOnSeekCompleteListener(OnSeekCompleteListener pListener);
@@ -57,6 +59,10 @@ public interface IPlayer {
 
     interface OnInfoListener {
         boolean onInfo(IPlayer pPlayer, int pWhat, int pExtra);
+    }
+
+    interface OnErrorListener {
+        boolean onError(IPlayer pPlayer, int pWhat, int pExtra);
     }
 
     interface OnBufferingUpdateListener {

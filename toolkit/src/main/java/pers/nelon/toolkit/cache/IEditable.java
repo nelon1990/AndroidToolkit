@@ -13,7 +13,7 @@ public interface IEditable {
 
     boolean putBitmap(String pKey, Bitmap pValue);
 
-    void afterEveryPut(String pKey);
+    void afterEachPut(String pKey);
 
     void afterCommit();
 

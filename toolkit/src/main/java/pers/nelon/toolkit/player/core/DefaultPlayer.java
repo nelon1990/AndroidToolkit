@@ -81,6 +81,16 @@ public class DefaultPlayer implements IPlayer {
     }
 
     @Override
+    public void setOnErrorListener(final OnErrorListener pListener) {
+        mMediaPlayer.setOnErrorListener(new MediaPlayer.OnErrorListener() {
+            @Override
+            public boolean onError(MediaPlayer mp, int what, int extra) {
+                return pListener.onError(DefaultPlayer.this, what, extra);
+            }
+        });
+    }
+
+    @Override
     public void setOnBufferingUpdateListener(final OnBufferingUpdateListener pListener) {
         mMediaPlayer.setOnBufferingUpdateListener(new MediaPlayer.OnBufferingUpdateListener() {
             @Override

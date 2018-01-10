@@ -490,13 +490,13 @@ public class Cache {
             public void opt() {
                 if (mValue instanceof String) {
                     mEditable.putString(mKey, String.valueOf(mValue));
-                    mEditable.afterEveryPut(mKey);
+                    mEditable.afterEachPut(mKey);
                 } else if (mValue instanceof Bitmap) {
                     mEditable.putBitmap(mKey, (Bitmap) mValue);
-                    mEditable.afterEveryPut(mKey);
+                    mEditable.afterEachPut(mKey);
                 } else if (mValue instanceof ICacheWriter) {
                     mEditable.put(mKey, (ICacheWriter<Object>) mValue);
-                    mEditable.afterEveryPut(mKey);
+                    mEditable.afterEachPut(mKey);
                 }
             }
         }

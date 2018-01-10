@@ -107,7 +107,7 @@ public class DiskCacheImpl extends BaseCacheImpl {
     }
 
     @Override
-    public void afterEveryPut(String pKey) {
+    public void afterEachPut(String pKey) {
         DiskLruCache.Editor editor = mEditorMap.remove(pKey);
         if (editor != null) {
             try {
