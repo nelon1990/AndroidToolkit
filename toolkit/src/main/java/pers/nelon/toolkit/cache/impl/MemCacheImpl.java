@@ -43,7 +43,8 @@ public class MemCacheImpl extends BaseCacheImpl {
     protected InputStream getCacheInputStream(String pKey) {
         ByteArrayOutputStream byteArrayOutputStream = mLruCache.get(pKey);
         if (byteArrayOutputStream == null) {
-            return null;
+            byteArrayOutputStream = new ByteArrayOutputStream();
+            mLruCache.put(pKey, byteArrayOutputStream);
         }
         return new ByteArrayInputStream(byteArrayOutputStream.toByteArray());
     }
