@@ -376,6 +376,7 @@ public class Cache {
         private static ExecutorService sExecutorService;
         private final IEditable mEditable;
         private final Queue<IEditorOpt> mEditorOptQueue = new LinkedList<>();
+        private CommitListener mCommitListener;
 
         private Editor(IEditable pEditable) {
             mEditable = pEditable;
@@ -453,6 +454,10 @@ public class Cache {
                         operation.opt();
                     }
                 } while (operation != null);
+                if (mCommitListener != null) {
+                    mCommitListener.onCommitCompleted();
+                    mCommitListener = null;
+                }
             } finally {
                 mEditable.afterCommit();
             }
@@ -465,6 +470,12 @@ public class Cache {
 
         @Override
         public ICommitFuture commitAsync() {
+            return new CommitFuture(getExecutorService().submit(this));
+        }
+
+        @Override
+        public ICommitFuture commitAsync(CommitListener listener) {
+            mCommitListener = listener;
             return new CommitFuture(getExecutorService().submit(this));
         }
 
@@ -606,6 +617,11 @@ public class Cache {
         @Override
         public ICommitFuture commitAsync() {
             return new FutureWrapper(mMemCacheEditor.commitAsync(), mDiskCacheEditor.commitAsync());
+        }
+
+        @Override
+        public ICommitFuture commitAsync(CommitListener listener) {
+            return new FutureWrapper(mMemCacheEditor.commitAsync(), mDiskCacheEditor.commitAsync(listener));
         }
 
     }

@@ -32,6 +32,12 @@ public interface IEditor {
 
     ICommitFuture commitAsync();
 
+    ICommitFuture commitAsync(CommitListener listener);
+
+    interface CommitListener {
+        void onCommitCompleted();
+    }
+
     interface IEditorOpt {
         void opt();
     }
