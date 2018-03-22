@@ -81,7 +81,7 @@ public class DiskCacheImpl extends BaseCacheImpl {
     }
 
     @Override
-    protected OutputStream getCacheOutputStream(String pKey) {
+    protected OutputStream getCacheOutputStream(String pKey, long length) {
         OutputStream outputStream = null;
         try {
             DiskLruCache.Editor editor = mDiskLruCache.edit(EncodeHelper.toMD5(pKey));

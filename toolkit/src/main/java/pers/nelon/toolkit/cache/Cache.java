@@ -375,12 +375,7 @@ public class Cache {
     private static class Editor implements IEditor, Runnable {
         private static ExecutorService sExecutorService;
         private final IEditable mEditable;
-        private final ThreadLocal<Queue<IEditorOpt>> mThreadLocal = new ThreadLocal<Queue<IEditorOpt>>() {
-            @Override
-            protected Queue<IEditorOpt> initialValue() {
-                return new LinkedList<>();
-            }
-        };
+        private final Queue<IEditorOpt> mEditorOptQueue = new LinkedList<>();
 
         private Editor(IEditable pEditable) {
             mEditable = pEditable;
@@ -400,13 +395,13 @@ public class Cache {
 
         @Override
         public Editor put(String pKey, Bitmap pBitmap) {
-            mThreadLocal.get().add(new EditorPut(mEditable, pKey, pBitmap));
+            mEditorOptQueue.add(new EditorPut(mEditable, pKey, pBitmap));
             return this;
         }
 
         @Override
         public Editor put(String pKey, String pString) {
-            mThreadLocal.get().add(new EditorPut(mEditable, pKey, pString));
+            mEditorOptQueue.add(new EditorPut(mEditable, pKey, pString));
             return this;
         }
 
@@ -432,19 +427,19 @@ public class Cache {
 
         @Override
         public IEditor put(String pKey, ICacheWriter pWriter) {
-            mThreadLocal.get().add(new EditorPut(mEditable, pKey, pWriter));
+            mEditorOptQueue.add(new EditorPut(mEditable, pKey, pWriter));
             return this;
         }
 
         @Override
         public IEditor delete(String pKey) {
-            mThreadLocal.get().add(new EditorDelete(mEditable, pKey));
+            mEditorOptQueue.add(new EditorDelete(mEditable, pKey));
             return this;
         }
 
         @Override
         public IEditor clear() {
-            mThreadLocal.get().add(new EditorClear(mEditable));
+            mEditorOptQueue.add(new EditorClear(mEditable));
             return this;
         }
 
@@ -453,8 +448,7 @@ public class Cache {
             try {
                 IEditorOpt operation;
                 do {
-                    Queue<IEditorOpt> iEditorOpts = mThreadLocal.get();
-                    operation = iEditorOpts.poll();
+                    operation = mEditorOptQueue.poll();
                     if (operation != null) {
                         operation.opt();
                     }

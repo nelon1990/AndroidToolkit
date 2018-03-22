@@ -33,8 +33,8 @@ public class MainActivity extends AppCompatActivity {
             BitmapDrawable drawable = (BitmapDrawable) getDrawable(R.mipmap.ic_launcher_round);
             Cache.withL2Cache()
                     .editor()
-                    .put("ic_launcher_round", new BitmapWriter(drawable.getBitmap(), Bitmap.CompressFormat.PNG, 100))
-                    .commit();
+                    .put("ic_launcher_round", drawable.getBitmap())
+                    .commitAsync();
             Bitmap bitmap = Cache.withL2Cache()
                     .get("ic_launcher_round", new BitmapReader(null, null), (Bitmap) null);
             ImageView imageView = (ImageView) findViewById(R.id.iv_image);

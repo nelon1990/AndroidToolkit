@@ -37,4 +37,9 @@ public class BitmapWriter implements ICacheWriter<Bitmap> {
         }
         return result;
     }
+
+    @Override
+    public long getLength() {
+        return mBitmap.getRowBytes() * mBitmap.getHeight();
+    }
 }

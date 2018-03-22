@@ -21,7 +21,7 @@ public abstract class BaseCacheImpl implements ICacheImpl {
 
     }
 
-    protected abstract OutputStream getCacheOutputStream(String pKey);
+    protected abstract OutputStream getCacheOutputStream(String pKey, long length);
 
     protected abstract InputStream getCacheInputStream(String pKey);
 
@@ -48,7 +48,7 @@ public abstract class BaseCacheImpl implements ICacheImpl {
 
     @Override
     public <T> boolean put(String pKey, ICacheWriter<T> pCacheWriter) {
-        OutputStream outputStream = getCacheOutputStream(pKey);
+        OutputStream outputStream = getCacheOutputStream(pKey, pCacheWriter.getLength());
         if (outputStream == null) {
             return false;
         }

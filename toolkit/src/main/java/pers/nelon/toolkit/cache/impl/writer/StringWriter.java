@@ -33,4 +33,9 @@ public class StringWriter implements ICacheWriter<String> {
         }
         return result;
     }
+
+    @Override
+    public long getLength() {
+        return mStr.length();
+    }
 }

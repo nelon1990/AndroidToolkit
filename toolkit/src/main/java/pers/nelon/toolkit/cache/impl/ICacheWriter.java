@@ -8,4 +8,6 @@ import java.io.OutputStream;
 
 public interface ICacheWriter<T> {
     boolean write(OutputStream pOutputStream);
+
+    long getLength();
 }
