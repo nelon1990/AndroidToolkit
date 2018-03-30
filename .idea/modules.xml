@@ -3,7 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/AndroidToolkit.iml" filepath="$PROJECT_DIR$/.idea/AndroidToolkit.iml" />
-      <module fileurl="file://D:\workspace\github\AndroidToolkit\NelonToolkit.iml" filepath="D:\workspace\github\AndroidToolkit\NelonToolkit.iml" />
+      <module fileurl="file://$PROJECT_DIR$/NelonToolkit.iml" filepath="$PROJECT_DIR$/NelonToolkit.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
       <module fileurl="file://$PROJECT_DIR$/toolkit/toolkit.iml" filepath="$PROJECT_DIR$/toolkit/toolkit.iml" />
     </modules>

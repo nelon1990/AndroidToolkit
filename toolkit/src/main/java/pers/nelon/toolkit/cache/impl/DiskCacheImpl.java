@@ -99,7 +99,9 @@ public class DiskCacheImpl extends BaseCacheImpl {
         InputStream inputStream = null;
         try {
             DiskLruCache.Snapshot snapshot = mDiskLruCache.get(EncodeHelper.toMD5(pKey));
-            inputStream = snapshot.getInputStream(0);
+            if (snapshot!=null) {
+                inputStream = snapshot.getInputStream(0);
+            }
         } catch (Exception pE) {
             pE.printStackTrace();
         }
