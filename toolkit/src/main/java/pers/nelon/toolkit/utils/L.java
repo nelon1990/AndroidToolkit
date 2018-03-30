@@ -27,6 +27,10 @@ public class L {
         doLog(Log.VERBOSE, str, (Object[]) null);
     }
 
+    public static void v(Object... objects) {
+        doLog(Log.VERBOSE, makeFormatString('v', objects.length), objects);
+    }
+
     public static void v(String str, Object... args) {
         doLog(Log.VERBOSE, str, args);
     }
@@ -37,6 +41,10 @@ public class L {
 
     public static void d(String str) {
         doLog(Log.DEBUG, str, (Object[]) null);
+    }
+
+    public static void d(Object... objects) {
+        doLog(Log.DEBUG, makeFormatString('d', objects.length), objects);
     }
 
     public static void d(String str, Object... args) {
@@ -51,6 +59,10 @@ public class L {
         doLog(Log.INFO, str, (Object[]) null);
     }
 
+    public static void i(Object... objects) {
+        doLog(Log.INFO, makeFormatString('i', objects.length), objects);
+    }
+
     public static void i(String str, Object... args) {
         doLog(Log.INFO, str, args);
     }
@@ -61,6 +73,10 @@ public class L {
 
     public static void w(String str) {
         doLog(Log.WARN, str, (Object[]) null);
+    }
+
+    public static void w(Object... objects) {
+        doLog(Log.WARN, makeFormatString('w', objects.length), objects);
     }
 
     public static void w(String str, Object... args) {
@@ -75,9 +91,12 @@ public class L {
         doLog(Log.ERROR, str, (Object[]) null);
     }
 
+    public static void e(Object... objects) {
+        doLog(Log.ERROR, makeFormatString('e', objects.length), objects);
+    }
+
     public static void e(String str, Object... args) {
         doLog(Log.ERROR, str, args);
-
     }
 
     public static void wtf() {
@@ -88,6 +107,10 @@ public class L {
         doLog(Log.ERROR, str, (Object[]) null);
     }
 
+    public static void wtf(Object... objects) {
+        doLog(Log.ERROR, makeFormatString('w', objects.length), objects);
+    }
+
     public static void wtf(String str, Object... args) {
         doLog(Log.ERROR, str, args);
     }
@@ -96,7 +119,7 @@ public class L {
         if (!isEnable()) return;
 
         StackTraceElement element = new Throwable().fillInStackTrace().getStackTrace()[2];
-        String msg = buildMsg(element, str, args);
+        String msg = buildMsg(str, args);
         String tag = buildTag(element);
 
         switch (level) {
@@ -127,35 +150,49 @@ public class L {
         if (!TextUtils.isEmpty(sTag)) {
             return sTag;
         }
-        return element.getFileName();
-    }
-
-    private static String buildMsg(StackTraceElement element, String str, Object... args) {
-        if (args != null && args.length > 0) {
-            str = String.format(str, args);
-        }
-        if (TextUtils.isEmpty(str)) {
-            str = "INVOKED";
-        }
-
-//        StackTraceElement caller = new Throwable().fillInStackTrace().getStackTrace()[element];
         StringBuilder stringBuilder = new StringBuilder();
         stringBuilder
+                .append("[")
+                .append("L-")
+                .append(element.getClassName())
+                .append("#")
+                .append(element.getMethodName())
                 .append("(")
                 .append(element.getFileName())
                 .append(":")
                 .append(element.getLineNumber())
-                .append(")[")
-                .append(element.getClassName())
-                .append("#")
-                .append(element.getMethodName())
-                .append("]: ")
-                .append(str);
+                .append(")")
+                .append("]");
         return stringBuilder.toString();
+    }
+
+    private static String buildMsg(String str, Object... args) {
+        if (args != null && args.length > 0) {
+            str = String.format(str, args);
+        }
+        if (TextUtils.isEmpty(str)) {
+            str = "invoked -- ☑";
+        }
+
+        return str;
     }
 
     private static boolean isEnable() {
         return sEnable;
     }
 
+    private static String makeFormatString(char c, int count) {
+        StringBuilder builder = new StringBuilder();
+        for (int i = 0; i < count; i++) {
+            builder.append(c)
+                    .append(i)
+                    .append("=%s, ");
+        }
+        try {
+            builder.deleteCharAt(builder.length() - 2);
+        } catch (Exception ignored) {
+        }
+
+        return builder.toString();
+    }
 }
