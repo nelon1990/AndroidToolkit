@@ -4,7 +4,6 @@ import android.util.LruCache;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
@@ -57,9 +56,11 @@ public class MemCacheImpl extends BaseCacheImpl {
     public void delete(String pKey) {
         XByteArrayOutputStream remove = mLruCache.remove(pKey);
         try {
-            remove.close();
-        } catch (IOException e) {
-            e.printStackTrace();
+            if (remove != null) {
+                remove.close();
+            }
+        } catch (Throwable ignored) {
+            ignored.printStackTrace();
         }
     }
 
@@ -67,9 +68,12 @@ public class MemCacheImpl extends BaseCacheImpl {
     public void clear() {
         for (String key : mLruCache.snapshot().keySet()) {
             try {
-                mLruCache.get(key).close();
-            } catch (Exception e) {
-                e.printStackTrace();
+                XByteArrayOutputStream xByteArrayOutputStream = mLruCache.get(key);
+                if (xByteArrayOutputStream != null) {
+                    xByteArrayOutputStream.close();
+                }
+            } catch (Throwable ignored) {
+                ignored.printStackTrace();
             }
         }
         mLruCache.evictAll();

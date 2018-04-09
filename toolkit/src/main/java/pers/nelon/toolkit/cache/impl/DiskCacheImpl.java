@@ -3,7 +3,6 @@ package pers.nelon.toolkit.cache.impl;
 import com.jakewharton.disklrucache.DiskLruCache;
 
 import java.io.File;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.concurrent.ConcurrentHashMap;
@@ -23,7 +22,7 @@ public class DiskCacheImpl extends BaseCacheImpl {
         mEditorMap = new ConcurrentHashMap<>();
         try {
             mDiskLruCache = DiskLruCache.open(directory, appVersion, valueCount, maxSize);
-        } catch (IOException pE) {
+        } catch (Throwable pE) {
             pE.printStackTrace();
             throw new UnknownError("can not create DiskCacheImpl :" + pE.getMessage());
         }
@@ -34,8 +33,7 @@ public class DiskCacheImpl extends BaseCacheImpl {
         boolean result = false;
         try {
             result = mDiskLruCache.get(EncodeHelper.toMD5(pKey)).getInputStream(0) != null;
-        } catch (Exception pE) {
-            pE.printStackTrace();
+        } catch (Throwable ignored) {
         }
         return result;
     }
@@ -44,8 +42,8 @@ public class DiskCacheImpl extends BaseCacheImpl {
     public void delete(String pKey) {
         try {
             mDiskLruCache.remove(EncodeHelper.toMD5(pKey));
-        } catch (IOException pE) {
-            pE.printStackTrace();
+        } catch (Throwable ignored) {
+            ignored.printStackTrace();
         }
     }
 
@@ -53,7 +51,7 @@ public class DiskCacheImpl extends BaseCacheImpl {
     public void clear() {
         try {
             mDiskLruCache.delete();
-        } catch (IOException pE) {
+        } catch (Throwable pE) {
             pE.printStackTrace();
         }
     }
@@ -63,7 +61,7 @@ public class DiskCacheImpl extends BaseCacheImpl {
         try {
             mDiskLruCache.close();
             mEditorMap.clear();
-        } catch (IOException pE) {
+        } catch (Throwable pE) {
             pE.printStackTrace();
         }
     }
@@ -75,7 +73,7 @@ public class DiskCacheImpl extends BaseCacheImpl {
             if (!mDiskLruCache.isClosed()) {
                 mDiskLruCache.flush();
             }
-        } catch (IOException pE) {
+        } catch (Throwable pE) {
             pE.printStackTrace();
         }
     }
@@ -99,7 +97,7 @@ public class DiskCacheImpl extends BaseCacheImpl {
         InputStream inputStream = null;
         try {
             DiskLruCache.Snapshot snapshot = mDiskLruCache.get(EncodeHelper.toMD5(pKey));
-            if (snapshot!=null) {
+            if (snapshot != null) {
                 inputStream = snapshot.getInputStream(0);
             }
         } catch (Exception pE) {
