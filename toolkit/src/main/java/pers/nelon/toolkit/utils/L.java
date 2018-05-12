@@ -151,10 +151,12 @@ public class L {
             return sTag;
         }
         StringBuilder stringBuilder = new StringBuilder();
+        String className = element.getClassName();
+        className = className.substring(className.lastIndexOf(".") + 1, className.length());
         stringBuilder
                 .append("[")
                 .append("L-")
-                .append(element.getClassName())
+                .append(className)
                 .append("#")
                 .append(element.getMethodName())
                 .append("(")
@@ -171,7 +173,7 @@ public class L {
             str = String.format(str, args);
         }
         if (TextUtils.isEmpty(str)) {
-            str = "invoked -- ☑";
+            str = "----------------------------------------------- ☑";
         }
 
         return str;

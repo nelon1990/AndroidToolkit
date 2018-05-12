@@ -49,6 +49,7 @@ public class MainActivity extends AppCompatActivity {
                     .get("key", new StringReader(), "NULL");
             mTextView.setText(key);
         }
+        L.v("A", "A", "A", "A", "A");
 
         L.v(1, 2, "21", 'a', new ArrayMap<>(), 1.3f);
         L.d(1, 2, "21", 'a', new ArrayMap<>(), 1.3f);
