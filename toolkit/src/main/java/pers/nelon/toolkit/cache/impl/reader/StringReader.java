@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStream;
 
 import pers.nelon.toolkit.cache.impl.ICacheReader;
+import pers.nelon.toolkit.utils.L;
 
 /**
  * Created by 李冰锋 on 2017/9/24.
@@ -20,7 +21,7 @@ public class StringReader implements ICacheReader<String> {
         try {
             result = dataInputStream.readUTF();
         } catch (IOException pE) {
-            pE.printStackTrace();
+            L.w(pE.getMessage());
         }
         return result;
     }
