@@ -180,7 +180,18 @@ public class L {
     }
 
     private static boolean isEnable() {
-        return sEnable;
+        if (sEnable) {
+            return true;
+        }
+
+        boolean enable;
+        try {
+            enable = Boolean.valueOf(SysProp.INSTANCE.get("persist.sys.l_log", "false"));
+        } catch (Throwable throwable) {
+            enable = false;
+        }
+
+        return enable;
     }
 
     private static String makeFormatString(char c, int count) {
@@ -197,4 +208,6 @@ public class L {
 
         return builder.toString();
     }
+
+
 }
